@@ -52,8 +52,9 @@ return(false);
 // }
 
 
-frame physical_line,physical_line2;
-
+frame physical_line[MAX_SEQ],physical_line2[MAX_SEQ];
+seq_nr ph_fr2_send = 0;
+seq_nr ph_fr2_rec = 0;
 
 class Protocol5
 {
@@ -67,15 +68,20 @@ private:
     seq_nr nbuffered; /* number of output buffers currently in use */
     seq_nr i; /* used to index into the buffer array */
     event_type event;
-    // laterrrrrrrrrrrrrrrrrrrrr enable_network_layer(); /* allow network layer ready events */
+    seq_nr ph_fr1_send;
+    seq_nr ph_fr1_rec;
+    int number_of_sever;
 public:
 
-    Protocol5()
+    Protocol5(int n)
     {
         ack_expected = 0; /* next ack expected inbound */
         next_frame_to_send = 0; /* next frame going out */
         frame_expected = 0; /* number of frame expected inbound */
         nbuffered = 0; /* initially no packets are buffered */
+        ph_fr1_send = 0;
+        ph_fr1_rec = 0;
+        number_of_sever = n;
         enable_network_layer();
     }
     void enable_network_layer() {
@@ -107,7 +113,7 @@ public:
     {
         srand(time(0));
         int ran = rand() % 10;
-        cout<<"ran is"<<ran<<endl;
+        cout<<"random is "<<ran<<endl;
         if (ran < 8)
         {
             event = frame_arrival;
@@ -124,26 +130,59 @@ public:
 
     void send_data()
     {
-    physical_line.info = buffer[next_frame_to_send]; /* insert packet into frame */
-    physical_line.seq = next_frame_to_send; /* insert sequence number into frame */
-    physical_line.ack = (frame_expected + MAX_SEQ) % (MAX_SEQ + 1); /* piggyback ack */
-    cout<<"Frame is on the Physical line"<<endl;
-    cout<<"the data being sent is :";
-    for (int i = 0; i < 5; i++)
-    {
-        cout<<physical_line.info.data[i]<<" ";
+        if (number_of_sever == 1)
+        {
+            physical_line[ph_fr1_send].info = buffer[next_frame_to_send]; /* insert packet into frame */
+            physical_line[ph_fr1_send].seq = next_frame_to_send; /* insert sequence number into frame */
+            physical_line[ph_fr1_send].ack = (frame_expected + MAX_SEQ) % (MAX_SEQ + 1); /* piggyback ack */
+            cout<<"Frame is on the Physical line"<<endl;
+            cout<<"the data being sent is :";
+            for (int i = 0; i < 5; i++)
+            {
+                cout<<physical_line[ph_fr1_send].info.data[i]<<" ";
+            }
+            cout<<endl;
+            inc(ph_fr1_send);
+            //start timer(frame nr); /* start the timer running */
+        }
+        else
+        {
+            physical_line2[ph_fr1_send].info = buffer[next_frame_to_send]; /* insert packet into frame */
+            physical_line2[ph_fr1_send].seq = next_frame_to_send; /* insert sequence number into frame */
+            physical_line2[ph_fr1_send].ack = (frame_expected + MAX_SEQ) % (MAX_SEQ + 1); /* piggyback ack */
+            cout<<"Frame is on the Physical line"<<endl;
+            cout<<"the data being sent is :";
+            for (int i = 0; i < 5; i++)
+            {
+                cout<<physical_line2[ph_fr1_send].info.data[i]<<" ";
+            }
+            cout<<endl;
+            inc(ph_fr1_send);
+            //start timer(frame nr); /* start the timer running */
+        }
     }
-    cout<<endl;
-
-    //start timer(frame nr); /* start the timer running */
-    }
-
+    
+    
     void from_physical_line()
     {
-        r.info = physical_line.info;
-        r.seq = physical_line.seq;
-        r.ack = physical_line.ack;
-        cout<<"fetching from physiacl layer a frame"<<endl;
+        if (number_of_sever == 2)
+        {
+            r.info = physical_line[ph_fr1_rec].info;
+            r.seq = physical_line[ph_fr1_rec].seq;
+            r.ack = physical_line[ph_fr1_rec].ack;
+            cout<<"fetching from physiacl layer a frame"<<endl;
+            inc(ph_fr1_rec);    
+        }
+        else
+        {
+            r.info = physical_line2[ph_fr1_rec].info;
+            r.seq = physical_line2[ph_fr1_rec].seq;
+            r.ack = physical_line2[ph_fr1_rec].ack;
+            cout<<"fetching from physiacl layer a frame"<<endl;
+            inc(ph_fr1_rec);
+        }
+        
+        
     }
 
     void to_network_layer() {
@@ -206,7 +245,7 @@ int main()
     string stop = "n";
     int server_number = 1;
     string packet_network;  
-    Protocol5 server1,server2;
+    Protocol5 server1(1),server2(2);
     while (1)
     {
         do
