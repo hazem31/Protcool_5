@@ -85,12 +85,12 @@ public:
         enable_network_layer();
     }
     void enable_network_layer() {
-        cout<<"the data link layer can accept data from network"<<endl;
+        cout<<"the data link layer can accept data from network at server "<<number_of_sever<<endl;
         full = false;
 
     }
     void disable_network_layer() {
-        cout<<"the data link layer can't accept data from network it is full window"<<endl;
+        cout<<"the data link layer can't accept data from network it is full window at server "<<number_of_sever<<endl;
         full = true;
     }
     void take_packet(string frame) {
@@ -113,8 +113,9 @@ public:
     {
         srand(time(0));
         int ran = rand() % 10;
+        // to be removed later
         cout<<"random is "<<ran<<endl;
-        if (ran < 8)
+        if (ran <= 9)
         {
             event = frame_arrival;
         }
@@ -128,6 +129,14 @@ public:
         }
     }
 
+    seq_nr get_ph_fr1_send() {
+        return ph_fr1_send;
+    }
+
+    seq_nr get_ph_fr1_rec() {
+        return ph_fr1_rec;
+    }
+
     void send_data()
     {
         if (number_of_sever == 1)
@@ -135,7 +144,7 @@ public:
             physical_line[ph_fr1_send].info = buffer[next_frame_to_send]; /* insert packet into frame */
             physical_line[ph_fr1_send].seq = next_frame_to_send; /* insert sequence number into frame */
             physical_line[ph_fr1_send].ack = (frame_expected + MAX_SEQ) % (MAX_SEQ + 1); /* piggyback ack */
-            cout<<"Frame is on the Physical line"<<endl;
+            cout<<"Frame is on the Physical line at server "<<number_of_sever<<endl;
             cout<<"the data being sent is :";
             for (int i = 0; i < 5; i++)
             {
@@ -150,7 +159,7 @@ public:
             physical_line2[ph_fr1_send].info = buffer[next_frame_to_send]; /* insert packet into frame */
             physical_line2[ph_fr1_send].seq = next_frame_to_send; /* insert sequence number into frame */
             physical_line2[ph_fr1_send].ack = (frame_expected + MAX_SEQ) % (MAX_SEQ + 1); /* piggyback ack */
-            cout<<"Frame is on the Physical line"<<endl;
+            cout<<"Frame is on the Physical line at server "<<number_of_sever<<endl;
             cout<<"the data being sent is :";
             for (int i = 0; i < 5; i++)
             {
@@ -170,7 +179,7 @@ public:
             r.info = physical_line[ph_fr1_rec].info;
             r.seq = physical_line[ph_fr1_rec].seq;
             r.ack = physical_line[ph_fr1_rec].ack;
-            cout<<"fetching from physiacl layer a frame"<<endl;
+            cout<<"fetching from physiacl layer a frame at server "<<number_of_sever<<endl;
             inc(ph_fr1_rec);    
         }
         else
@@ -178,7 +187,7 @@ public:
             r.info = physical_line2[ph_fr1_rec].info;
             r.seq = physical_line2[ph_fr1_rec].seq;
             r.ack = physical_line2[ph_fr1_rec].ack;
-            cout<<"fetching from physiacl layer a frame"<<endl;
+            cout<<"fetching from physiacl layer a frame at server "<<number_of_sever<<endl;
             inc(ph_fr1_rec);
         }
         
@@ -186,7 +195,7 @@ public:
     }
 
     void to_network_layer() {
-        cout<<"network layer is reciving a packet from data link layer"<<endl;
+        cout<<"network layer is reciving a packet from data link layer at server "<<number_of_sever<<endl;
         cout<<"the data being sent is :";
         for (int i = 0; i < 5; i++)
         {
@@ -194,6 +203,22 @@ public:
         }
         cout<<endl;
 
+    }
+
+    void check_for_data(seq_nr p1)
+    {
+        if (p1 ==  ph_fr1_rec)
+        {
+            // this must be deleted later
+            cout<<"there is no data to consume for server "<<number_of_sever<<endl;
+        }
+        else
+        {
+            wait_for_event();
+            protocol();
+        }
+        
+        
     }
 
     void protocol(void)
@@ -208,23 +233,29 @@ public:
                 case frame_arrival: /* a data or control frame has arrived */
                     from_physical_line(); /* get incoming frame from physical layer */
                     if (r.seq == frame_expected) {
+                        cout<<"the right expected frame arrived at server : "<<number_of_sever<<" :seq_num of frame : " <<frame_expected<<endl;
                         /* Frames are accepted only in order. */
                         to_network_layer(); /* pass packet to network layer */
                         inc(frame_expected); /* advance lower edge of receiver’s window */
                     }
                     /* Ack n implies n − 1, n − 2, etc. Check for this. */
                     while (between(ack_expected, r.ack, next_frame_to_send)) {
+                        cout<<"ack for Frame :"<<ack_expected<<" arrived at server "<<number_of_sever<<endl;
+                        if (nbuffered - 1 == 7)
+                        {
+                            enable_network_layer();
+                        }
                         nbuffered = nbuffered - 1; 
                         // laterrrrrrrrrrrrrrrrrrrrrrrr stop_timer(ack_expected); /* frame arrived intact; stop timer */
                         inc(ack_expected); /* contract sender’s window */   
                     }
                 break;
                 case cksum_err: 
-                    cout<<"cksum_err happend:"<<endl;
+                    cout<<"cksum_err happend at server"<<number_of_sever<<endl;
                 break; /* just ignore bad frames */
                 
                 case timeout: /* trouble; retransmit all outstanding frames */
-                    cout<<"Time out happend for ack:"<<ack_expected<<endl;
+                    cout<<"Time out happend for ack: "<<ack_expected<<" at server "<<number_of_sever<<endl;
                     next_frame_to_send = ack_expected; /* start retransmitting here */
                     for (i = 1; i <= nbuffered; i++) {
                         send_data();/* resend frame */
@@ -252,23 +283,28 @@ int main()
         {
             cout<<"input a Packet of 5 chars"<<endl;
             cin>>packet_network;    
+            if (packet_network == "0")
+            {
+                break;
+            }
+            
         } while (packet_network.length() != 5);
 
         do
         {
-            cout<<"input server number 1 or 2"<<endl;
+            cout<<"input server number 1 or 2 which has the packet"<<endl;
             cin>>server_number;
         } while (server_number != 1 && server_number != 2);
         
         if (server_number == 1)
         {
+            server1.check_for_data(server2.get_ph_fr1_send());
             server1.take_packet(packet_network);
             server1.protocol();
-            server2.wait_for_event();
-            server2.protocol();
         }
         else
         {
+            server2.check_for_data(server1.get_ph_fr1_send());
             server2.take_packet(packet_network);
             server2.protocol();
         }
