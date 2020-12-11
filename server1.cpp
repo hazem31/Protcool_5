@@ -50,7 +50,6 @@ packet info;
 
 #define inc(k) if (k < MAX_SEQ) k = k + 1; else k = 0
 
-//start of amgad code
 
 #define PORT 4444
 
@@ -62,6 +61,7 @@ void StartServer(void){
             server_socket = socket(AF_INET, SOCK_STREAM, 0);
             sockaddr_in server_address;
             server_address.sin_family = AF_INET;
+            // the local ip 
             server_address.sin_addr.s_addr = inet_addr("192.168.1.18");
             server_address.sin_port = htons(PORT);
             bind(server_socket, (sockaddr *)&server_address, sizeof(server_address));
@@ -76,6 +76,7 @@ void StartClient(void)
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
     sockaddr_in server_address;
     server_address.sin_family = AF_INET;
+    // the local ip
     server_address.sin_addr.s_addr = inet_addr("192.168.1.18");
     server_address.sin_port = htons(PORT);
     std::cout<<"connecting to: 192.168.1.18 on Port: 4444"<<endl;
@@ -100,7 +101,7 @@ void write_ph(frame *s){
     
 }
 
-// end of amgad code
+
 
 int timeout_count = 0;
 
